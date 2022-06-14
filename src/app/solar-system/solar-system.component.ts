@@ -3,10 +3,15 @@ import { AfterViewInit, Component, ElementRef, OnInit, ViewChild } from "@angula
 import * as dat from "lil-gui";
 import * as THREE from "three";
 import { PlaneteProps } from "../planete-props.model";
+import { gsap } from 'gsap';
 
-// const sunVertextShader = require('shaders/sun-vertex.glsl');
-// const sunFragmentShader = require('shaders/sun-fragment.glsl');
-// console.log(sunVertextShader)
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+
+import glsl from 'glslify';
+
+const sunVertextShader = require('shaders/sun-vertex.glsl');
+const sunFragmentShader = require('shaders/sun-fragment.glsl');
+console.log(sunVertextShader)
 // import testFragmentShader from '../shaders/fragment.glsl'
 // import sunVertextShader from '../../assets/shaders/sun-vertex.glsl'
 // import sunFragmentShader from '../shaders/sun-fragment.glsl'
@@ -18,6 +23,7 @@ import { PlaneteProps } from "../planete-props.model";
 })
 export class SolarSystemComponent implements OnInit, AfterViewInit {
   @ViewChild("canvas") private canvasRef: ElementRef;
+  private loadingBarElement ;
 
   private get canvas(): HTMLCanvasElement {
     return this.canvasRef.nativeElement;
@@ -30,7 +36,25 @@ export class SolarSystemComponent implements OnInit, AfterViewInit {
     height: window.innerHeight,
   };
 
-  private textureLoader = new THREE.TextureLoader();
+  private loadingManager = new THREE.LoadingManager(
+    //  loaded
+    () => 
+    {
+      gsap.delayedCall(0.5, () => {
+        gsap.to(this.overlayMaterial.uniforms['uAlpha'], {duration: 3, value : 0})
+        this.loadingBarElement.classList.add('ended')
+        this.loadingBarElement.style.transform = ''
+      })
+    },
+
+    //  progress
+    (itemUrl, itemsLoaded, itemsTotal) => {
+      const progressRatio = itemsLoaded / itemsTotal
+      this.loadingBarElement.style.transform = `scaleX(${progressRatio})`
+    }
+  )
+
+  private textureLoader = new THREE.TextureLoader(this.loadingManager);
 
   //  Colors textures
   private spaceTexture = this.textureLoader.load("/assets/textures/color/space-bis.jpg");
@@ -58,7 +82,6 @@ export class SolarSystemComponent implements OnInit, AfterViewInit {
   private scene = new THREE.Scene();
 
   private ambientLight = new THREE.AmbientLight(0xffffff, 1);
-
   private directionalLight = new THREE.DirectionalLight(0xffffff, 1);
 
   private camera = new THREE.PerspectiveCamera(45, this.sizes.width / this.sizes.height, 0.1, 100);
@@ -117,12 +140,16 @@ export class SolarSystemComponent implements OnInit, AfterViewInit {
   }`;
 
   private planetFragmentShader = `
+  #pragma glslify: noiseFunc = require(glsl-noise/simplex/4d);
+
+  varying vec3 vPosition;
   uniform vec3 glowColor;
   varying float intensity;
   void main() 
   {
       vec3 glow = glowColor * intensity;
       gl_FragColor = vec4( glow, 1.0 );
+      gl_FragColor = vec4(noise(1.0, 1.0, 1.0), 1.0);
   }`;
 
   // Customs materials
@@ -142,6 +169,32 @@ export class SolarSystemComponent implements OnInit, AfterViewInit {
     blending: THREE.AdditiveBlending,
   });
 
+  /**
+   * Overlay
+   */
+  private overlayGeometry = new THREE.PlaneBufferGeometry(2, 2, 1, 1)
+  private overlayMaterial = new THREE.ShaderMaterial({
+    transparent:true,
+    uniforms: 
+    {
+      uAlpha: { value : 1}
+    },
+    vertexShader: `
+      void main()
+      {
+        gl_Position = vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform float uAlpha;
+
+      void main()
+      {
+        gl_FragColor = vec4(0.0, 0.0, 0.0, uAlpha);
+      }
+    `
+  })
+
   private solarSystemGroup = new THREE.Group();
 
   private cameraMinX = -4;
@@ -157,9 +210,16 @@ export class SolarSystemComponent implements OnInit, AfterViewInit {
 
   private planetSpeedRotation = 0.1;
 
+  private controls ;
+
+
   constructor() {}
 
   ngOnInit(): void {
+
+    this.loadingBarElement = document.querySelector('.loading-bar')
+
+    this.setUpLoading()
     this.setUpTextureEncoding();
     this.createPlanetesProps();
     this.setUpSceneCameraAndLight();
@@ -167,8 +227,14 @@ export class SolarSystemComponent implements OnInit, AfterViewInit {
     this.createMeshs();
     this.debug();
   }
+  setUpLoading() {
+    const overlay = new THREE.Mesh(this.overlayGeometry, this.overlayMaterial)
+    this.scene.add(overlay)
+  }
 
   ngAfterViewInit(): void {
+    // this.controls = new OrbitControls(this.camera, this.canvas)
+    // this.controls.enableDamping = true
     this.startRenderingLoop();
   }
 
@@ -214,7 +280,7 @@ export class SolarSystemComponent implements OnInit, AfterViewInit {
     this.camera.lookAt(new THREE.Vector3(this.camera.position.x, 0, 0));
 
     // Update controls
-    // controls.update()
+    // this.controls.update()
 
     this.sunCustomMaterial.uniforms["uTime"].value = elapsedTime;
   }

@@ -18,6 +18,11 @@
     "@angular/platform-browser": "~13.0.0",
     "@angular/platform-browser-dynamic": "~13.0.0",
     "@angular/router": "~13.0.0",
+    "angular2-template-loader": "^0.6.2",
+    "glsl-noise": "^0.0.0",
+    "glslify": "^7.1.1",
+    "glslify-loader": "^2.0.0",
+    "gsap": "^3.5.1",
     "lil-gui": "^0.16.1",
     "rxjs": "~7.4.0",
     "three": "^0.141.0",
@@ -26,18 +31,29 @@
     "zone.js": "~0.11.4"
   },
   "devDependencies": {
+    "@angular-builders/custom-webpack": "^14.0.0",
     "@angular-devkit/build-angular": "^13.3.7",
     "@angular/cli": "~13.0.3",
     "@angular/compiler-cli": "~13.0.0",
     "@types/jasmine": "~3.10.0",
     "@types/node": "^12.20.55",
     "@types/three": "^0.141.0",
+    "css-loader": "^6.7.1",
+    "file-loader": "^6.2.0",
+    "html-loader": "^3.1.0",
     "jasmine-core": "~3.10.0",
     "karma": "~6.3.0",
     "karma-chrome-launcher": "~3.1.0",
     "karma-coverage": "~2.0.3",
     "karma-jasmine": "~4.0.0",
     "karma-jasmine-html-reporter": "~1.7.0",
-    "typescript": "~4.4.3"
+    "null-loader": "^4.0.1",
+    "raw-loader": "^4.0.2",
+    "style-loader": "^3.3.1",
+    "to-string-loader": "^1.2.0",
+    "typescript": "~4.4.3",
+    "webpack": "^5.73.0",
+    "webpack-dev-server": "^4.9.2",
+    "webpack-merge": "^5.8.0"
   }
 }
