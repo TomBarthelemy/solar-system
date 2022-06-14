@@ -113,5 +113,7 @@
       }
     }
   },
-  "defaultProject": "solar-system"
+  "cli": {
+    "analytics": false
+  }
 }

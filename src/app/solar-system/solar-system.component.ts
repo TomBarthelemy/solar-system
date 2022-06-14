@@ -9,12 +9,16 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 
 import glsl from 'glslify';
 
-const sunVertextShader = require('shaders/sun-vertex.glsl');
-const sunFragmentShader = require('shaders/sun-fragment.glsl');
-console.log(sunVertextShader)
-// import testFragmentShader from '../shaders/fragment.glsl'
-// import sunVertextShader from '../../assets/shaders/sun-vertex.glsl'
-// import sunFragmentShader from '../shaders/sun-fragment.glsl'
+// @ts-ignore
+import sunVertexShader  from '../../assets/shaders/sun-vertex.glsl' ;
+// @ts-ignore
+import sunFragmentShader  from '../../assets/shaders/sun-fragment.glsl' ;
+// @ts-ignore
+import planetVertexShader  from '../../assets/shaders/vertex.glsl' ;
+// @ts-ignore
+import planetFragmentShader  from '../../assets/shaders/fragment.glsl' ;
+
+
 
 @Component({
   selector: "app-solar-system",
@@ -88,70 +92,6 @@ export class SolarSystemComponent implements OnInit, AfterViewInit {
 
   private renderer: THREE.WebGLRenderer;
 
-  // Customs shaders
-  private sunVertexShader = `
-  uniform vec3 viewVector;
-  uniform float c;
-  uniform float p;
-  uniform vec2 uFrequency;
-  uniform float uTime;
-  
-  varying float intensity;
-  void main() 
-  {
-      vec3 vNormal = normalize( normalMatrix * normal );
-      vec3 vNormel = normalize( normalMatrix * viewVector );
-      intensity = pow( c - dot(vNormal, vNormel), p );
-      
-      gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
-      
-  
-      vec4 modelPosition = modelMatrix * vec4(position, 1.0);
-      modelPosition.z += sin(modelPosition.x * uFrequency.x - uTime) * 0.5;
-      modelPosition.z += sin(modelPosition.y * uFrequency.y - uTime) * 0.5;
-  
-      vec4 viewPosition = viewMatrix * modelPosition;
-      vec4 projectedPosition = projectionMatrix * viewPosition;
-      
-      gl_Position = projectedPosition;
-  }`;
-
-  private sunFragmentShader = `
-  uniform vec3 glowColor;
-  varying float intensity;
-  void main() 
-  {
-      vec3 glow = glowColor * intensity;
-      gl_FragColor = vec4( glow, 1.0 );
-  }`;
-
-  private planetVertexShader = `
-  uniform vec3 viewVector;
-  uniform float c;
-  uniform float p;
-  varying float intensity;
-  void main() 
-  {
-      vec3 vNormal = normalize( normalMatrix * normal );
-      vec3 vNormel = normalize( normalMatrix * viewVector );
-      intensity = pow( c - dot(vNormal, vNormel), p );
-      
-      gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
-  }`;
-
-  private planetFragmentShader = `
-  #pragma glslify: noiseFunc = require(glsl-noise/simplex/4d);
-
-  varying vec3 vPosition;
-  uniform vec3 glowColor;
-  varying float intensity;
-  void main() 
-  {
-      vec3 glow = glowColor * intensity;
-      gl_FragColor = vec4( glow, 1.0 );
-      gl_FragColor = vec4(noise(1.0, 1.0, 1.0), 1.0);
-  }`;
-
   // Customs materials
 
   sunCustomMaterial = new THREE.ShaderMaterial({
@@ -163,8 +103,8 @@ export class SolarSystemComponent implements OnInit, AfterViewInit {
       uFrequency: { value: new THREE.Vector2(10, 5) },
       uTime: { value: 0 },
     },
-    vertexShader: this.sunVertexShader,
-    fragmentShader: this.sunFragmentShader,
+    vertexShader: sunVertexShader,
+    fragmentShader: sunFragmentShader,
     side: THREE.BackSide,
     blending: THREE.AdditiveBlending,
   });
@@ -321,8 +261,8 @@ export class SolarSystemComponent implements OnInit, AfterViewInit {
             glowColor: { value: new THREE.Color(props.glowColor) },
             viewVector: { value: this.camera.position },
           },
-          vertexShader: this.planetVertexShader,
-          fragmentShader: this.planetFragmentShader,
+          vertexShader: planetVertexShader,
+          fragmentShader: planetFragmentShader,
           side: THREE.BackSide,
           blending: THREE.AdditiveBlending,
         });
