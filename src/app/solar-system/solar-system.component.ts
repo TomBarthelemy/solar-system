@@ -17,6 +17,8 @@ import sunFragmentShader  from '../../assets/shaders/sun-fragment.glsl' ;
 import planetVertexShader  from '../../assets/shaders/vertex.glsl' ;
 // @ts-ignore
 import planetFragmentShader  from '../../assets/shaders/fragment.glsl' ;
+import { compileNgModule } from "@angular/compiler";
+
 
 
 
@@ -29,6 +31,23 @@ export class SolarSystemComponent implements OnInit, AfterViewInit {
   @ViewChild("canvas") private canvasRef: ElementRef;
   private loadingBarElement ;
 
+  private mouse = new THREE.Vector2();
+  private mouseRayCaster = new THREE.Raycaster();
+
+  private cameraMinX = -4;
+  private cameraMaxX = 35;
+
+  private cameraMinZ = 5;
+  private cameraMaxZ = 30;
+
+  private mouseDown = false;
+  private cursorX = 0;
+
+  private planetSpeedRotation = 0.1;
+
+  private defaultGlow = 0.6;
+  private hoverGlow = 0.8;
+
   private get canvas(): HTMLCanvasElement {
     return this.canvasRef.nativeElement;
   }
@@ -40,6 +59,7 @@ export class SolarSystemComponent implements OnInit, AfterViewInit {
     height: window.innerHeight,
   };
 
+  private sceneReady = false
   private loadingManager = new THREE.LoadingManager(
     //  loaded
     () => 
@@ -49,6 +69,11 @@ export class SolarSystemComponent implements OnInit, AfterViewInit {
         this.loadingBarElement.classList.add('ended')
         this.loadingBarElement.style.transform = ''
       })
+
+      gsap.delayedCall(2, () => {
+        this.sceneReady = true
+      })
+
     },
 
     //  progress
@@ -83,6 +108,9 @@ export class SolarSystemComponent implements OnInit, AfterViewInit {
   private solarSystemProps = new Map();
   private solarSystemMesh = new Map();
 
+  private raycaster = new THREE.Raycaster()
+  private points : Map<string, any> = new Map()
+
   private scene = new THREE.Scene();
 
   private ambientLight = new THREE.AmbientLight(0xffffff, 1);
@@ -96,8 +124,8 @@ export class SolarSystemComponent implements OnInit, AfterViewInit {
 
   sunCustomMaterial = new THREE.ShaderMaterial({
     uniforms: {
-      c: { value: 0.75 },
-      p: { value: 6 },
+      c: { value: this.defaultGlow + 0.15 },
+      p: { value: 5.5 },
       glowColor: { value: new THREE.Color("#ffff00") },
       viewVector: { value: this.camera.position },
       uFrequency: { value: new THREE.Vector2(10, 5) },
@@ -137,21 +165,9 @@ export class SolarSystemComponent implements OnInit, AfterViewInit {
 
   private solarSystemGroup = new THREE.Group();
 
-  private cameraMinX = -4;
-  private cameraMaxX = 35;
-
-  private cameraMinZ = 5;
-  private cameraMaxZ = 30;
-
-  private mouseDown = false;
-  private cursorX = 0;
-
+  
+  private controls ;  
   private clock = new THREE.Clock();
-
-  private planetSpeedRotation = 0.1;
-
-  private controls ;
-
 
   constructor() {}
 
@@ -199,6 +215,8 @@ export class SolarSystemComponent implements OnInit, AfterViewInit {
   tick() {
     const elapsedTime = this.clock.getElapsedTime();
 
+    this.camera.lookAt(new THREE.Vector3(this.camera.position.x, 0, 0));
+
     // Animate meshes
     for (var [planetName, mesh] of this.solarSystemMesh.entries()) {
       let planetMesh = mesh.getObjectByName(planetName);
@@ -215,14 +233,70 @@ export class SolarSystemComponent implements OnInit, AfterViewInit {
       }
 
       planetGlowMesh.material.uniforms.viewVector.value = new THREE.Vector3().subVectors(this.camera.position, planetGlowMesh.position);
+
+      // planetGlowMesh.material.uniforms.p.needsUpdate = true
+      // planetGlowMesh.material.uniforms.p.value = Math.random() 
     }
 
-    this.camera.lookAt(new THREE.Vector3(this.camera.position.x, 0, 0));
+
 
     // Update controls
     // this.controls.update()
 
+    // Update points only when the scene is ready
+    if(this.sceneReady)
+    {
+        // Go through each point
+        for(const point of this.points.values())
+        {
+            // Get 2D screen position
+            const screenPosition = point.position.clone()
+            screenPosition.project(this.camera)
+    
+            // Set the raycaster
+            this.raycaster.setFromCamera(screenPosition, this.camera)
+            const intersects = this.raycaster.intersectObjects(this.scene.children, true)
+    
+            // No intersect found
+            if(intersects.length === 0)
+            {
+                // Show
+                point.element.classList.add('visible')
+            }
+
+            // Intersect found
+            else
+            {
+                // Get the distance of the intersection and the distance of the point
+                const intersectionDistance = intersects[0].distance
+                const pointDistance = point.position.distanceTo(this.camera.position)
+    
+                // Intersection is close than the point
+                if(intersectionDistance < pointDistance)
+                {
+                    // Hide
+                    point.element.classList.remove('visible')
+                }
+                // Intersection is further than the point
+                else
+                {
+                    // Show
+                    point.element.classList.add('visible')
+                }
+            }
+    
+            const translateX = screenPosition.x * this.sizes.width * 0.5
+            const translateY = - screenPosition.y * this.sizes.height * 0.5
+            point.element.style.transform = `translateX(${translateX}px) translateY(${translateY}px)`
+        }
+    }
+
+
+
     this.sunCustomMaterial.uniforms["uTime"].value = elapsedTime;
+
+    this.resetMaterials();
+    this.hoverPlanet();
   }
 
   createMeshs() {
@@ -247,7 +321,7 @@ export class SolarSystemComponent implements OnInit, AfterViewInit {
 
       if (planetName === "SUN") {
         const sunGlow = new THREE.Mesh(sphereGeom.clone(), this.sunCustomMaterial.clone());
-        sunGlow.position.x = props.positionX;
+        sunGlow.position.x = props.positionX -1.5;
         sunGlow.name = planetName + "-GLOW";
         sunGlow.scale.multiplyScalar(1.25);
 
@@ -256,7 +330,7 @@ export class SolarSystemComponent implements OnInit, AfterViewInit {
       } else {
         var customMaterial = new THREE.ShaderMaterial({
           uniforms: {
-            c: { value: 0.6 },
+            c: { value: this.defaultGlow },
             p: { value: 6 },
             glowColor: { value: new THREE.Color(props.glowColor) },
             viewVector: { value: this.camera.position },
@@ -437,6 +511,47 @@ export class SolarSystemComponent implements OnInit, AfterViewInit {
     this.solarSystemProps.set("SATURN", SATURN);
     this.solarSystemProps.set("URANUS", URANUS);
     this.solarSystemProps.set("NEPTUNE", NEPTUNE);
+
+
+    this.points.set('SUN', {
+      position: new THREE.Vector3(MERCURE.positionX, 8, 0),
+      element: document.querySelector('.SUN')
+    })
+    this.points.set('MERCURE', {
+      position: new THREE.Vector3(MERCURE.positionX, -1, MARS.scale),
+      element: document.querySelector('.MERCURE')
+    })
+    this.points.set('VENUS', {
+      position: new THREE.Vector3(VENUS.positionX, -1, VENUS.scale),
+      element: document.querySelector('.VENUS')
+    })
+    this.points.set('EARTH', {
+      position: new THREE.Vector3(EARTH.positionX, -1, EARTH.scale),
+      element: document.querySelector('.EARTH')
+    })
+    this.points.set('MARS', {
+      position: new THREE.Vector3(MARS.positionX, -1, MARS.scale),
+      element: document.querySelector('.MARS')
+    })
+    this.points.set('JUPITER', {
+      position: new THREE.Vector3(JUPITER.positionX-.5, -2, JUPITER.scale),
+      element: document.querySelector('.JUPITER')
+    })
+    this.points.set('SATURN', {
+      position: new THREE.Vector3(SATURN.positionX-0.5, -2.5, SATURN.scale + SATURN.ringScale),
+      element: document.querySelector('.SATURN')
+    })
+    this.points.set('URANUS', {
+      position: new THREE.Vector3(URANUS.positionX-1, -1, URANUS.scale),
+      element: document.querySelector('.URANUS')
+    })
+    this.points.set('NEPTUNE', {
+      position: new THREE.Vector3(NEPTUNE.positionX-1.5, -1, NEPTUNE.scale),
+      element: document.querySelector('.NEPTUNE')
+    })
+
+
+
   }
 
   setUpEventsListener(): void {
@@ -447,6 +562,10 @@ export class SolarSystemComponent implements OnInit, AfterViewInit {
     });
 
     window.addEventListener("mousemove", (event) => {
+
+      this.mouse.x = ( event.clientX / this.sizes.width ) * 2 - 1;
+	    this.mouse.y = - ( event.clientY / this.sizes.height ) * 2 + 1;
+
       if (!this.mouseDown) {
         return;
       } // is the button pressed?
@@ -456,6 +575,7 @@ export class SolarSystemComponent implements OnInit, AfterViewInit {
       this.cursorX = event.clientX / this.sizes.width;
       this.dragAction(-deltaX);
     });
+
     window.addEventListener("mouseup", (event) => {
       event.preventDefault();
       this.mouseDown = false;
@@ -507,5 +627,67 @@ export class SolarSystemComponent implements OnInit, AfterViewInit {
     const cameraGui = this.gui.addFolder('Camera')
     cameraGui.add(this.camera.position, 'x').min(this.cameraMinX).max(this.cameraMaxX).name('Scroll Horizontal')
     cameraGui.add(this.camera.position, 'z').min(this.cameraMinZ).max(this.cameraMaxZ).name('Zoom')
+    this.gui.close()
   }
+
+
+  resetMaterials(): void {
+    for(let i = 0; i < this.solarSystemGroup.children.length; i++){
+      const planetGroup = this.solarSystemGroup.children[i] as THREE.Mesh
+
+      for(let j = 0; j < planetGroup.children.length; j++){
+        const mesh = planetGroup.children[j] as THREE.Mesh
+        console.log(mesh)
+        if(mesh.name.includes('GLOW')){
+          const material = mesh.material as THREE.ShaderMaterial
+          material.uniforms.c.value = this.defaultGlow
+          if(mesh.name.includes('SUN')){
+            material.uniforms.c.value = this.defaultGlow + 0.2
+          }
+
+          let planetName = mesh.name
+          const idx = planetName.indexOf('-GLOW')
+          planetName = planetName.slice(0, idx)
+          console.log(planetName)
+          if(this.points.has(planetName)){
+            this.points.get(planetName).element.classList.remove('visible')
+          }
+        }
+      }
+    }
+  }
+
+
+  hoverPlanet() : void {
+    this.mouseRayCaster.setFromCamera(this.mouse, this.camera);
+    const intersrects = this.mouseRayCaster.intersectObjects(this.solarSystemGroup.children)
+
+    if(intersrects.length === 0){
+      return
+    }
+
+    for(let i =0; i < intersrects.length; i++){
+      const mesh = (intersrects[i].object as THREE.Mesh)
+      console.log(mesh)
+      if(mesh.name.includes('GLOW')){
+        const material = mesh.material as THREE.ShaderMaterial
+        material.uniforms.c.value = this.hoverGlow
+        if(mesh.name.includes('SUN')){
+          material.uniforms.c.value = this.hoverGlow + 0.1
+        }
+
+        let planetName = mesh.name
+        const idx = planetName.indexOf('-GLOW')
+        planetName = planetName.slice(0, idx)
+        console.log(planetName)
+        //this.points.get(planetName).element.classList.add('visible')
+        if(this.points.has(planetName)){
+          this.points.get(planetName).element.classList.add('visible')
+        }
+
+      }
+    }
+
+  }
+
 }
