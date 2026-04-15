@@ -26,61 +26,11 @@
   </div>
 </div>
 
-<div class="planet-card" *ngIf="selectedPlanet && planetData[selectedPlanet]" [style.--accent]="selectedPlanetColor">
-  <div class="card-content">
-    <button class="card-close" (click)="unfocusPlanet()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M18 6L6 18M6 6l12 12"/>
-      </svg>
-    </button>
-
-    <div class="card-header">
-      <p class="card-type">{{ planetData[selectedPlanet].type }}</p>
-      <h2 class="card-name">{{ planetData[selectedPlanet].displayName }}</h2>
-    </div>
-
-    <div class="card-body">
-      <p class="card-description">{{ planetData[selectedPlanet].description }}</p>
-
-      <hr class="card-divider">
-
-      <dl class="card-stats">
-        <div class="stat">
-          <dt>Diamètre</dt>
-          <dd>{{ planetData[selectedPlanet].diameter }}</dd>
-        </div>
-        <div class="stat">
-          <dt>Distance du Soleil</dt>
-          <dd>{{ planetData[selectedPlanet].distanceFromSun }}</dd>
-        </div>
-        <div class="stat">
-          <dt>Lunes</dt>
-          <dd>{{ planetData[selectedPlanet].moons }}</dd>
-        </div>
-        <div class="stat">
-          <dt>Période orbitale</dt>
-          <dd>{{ planetData[selectedPlanet].orbitalPeriod }}</dd>
-        </div>
-        <div class="stat stat-full">
-          <dt>Température</dt>
-          <dd>{{ planetData[selectedPlanet].temperature }}</dd>
-        </div>
-      </dl>
-    </div>
-
-    <div class="card-nav">
-      <button class="card-nav-btn" (click)="navigatePlanet(-1)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M15 18l-6-6 6-6"/>
-        </svg>
-        <span>{{ planetData[planetOrder[(selectedPlanetIndex - 1 + planetOrder.length) % planetOrder.length]].displayName }}</span>
-      </button>
-      <button class="card-nav-btn card-nav-btn--next" (click)="navigatePlanet(1)">
-        <span>{{ planetData[planetOrder[(selectedPlanetIndex + 1) % planetOrder.length]].displayName }}</span>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M9 18l6-6-6-6"/>
-        </svg>
-      </button>
-    </div>
-  </div>
-</div>
+<app-planet-card
+  *ngIf="selectedPlanet"
+  [planet]="selectedPlanet"
+  [planetOrder]="planetOrder"
+  [accentColor]="selectedPlanetColor"
+  (closed)="unfocusPlanet()"
+  (navigated)="navigatePlanet($event)">
+</app-planet-card>

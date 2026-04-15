@@ -1,0 +1,261 @@
+// ─── Host: card panel positioning ────────────────────────────────────────────
+
+:host {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 40%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  z-index: 10;
+}
+
+// ─── Card shell ───────────────────────────────────────────────────────────────
+
+.card-content {
+  position: relative;
+  pointer-events: all;
+  background: rgba(4, 6, 18, 0.84);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-top: 2px solid var(--accent, rgba(255, 255, 255, 0.3));
+  border-radius: 16px;
+  padding: 2.75rem 3rem;
+  margin: 2rem;
+  color: #fff;
+  width: 100%;
+  height: 620px;
+  font-family: Helvetica, Arial, sans-serif;
+  animation: cardSlideIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+@keyframes cardSlideIn {
+  from { opacity: 0; transform: translateX(32px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+// ─── Close button ─────────────────────────────────────────────────────────────
+
+.card-close {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.3);
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+
+  svg { width: 18px; height: 18px; }
+  &:hover { color: #fff; }
+}
+
+// ─── Header ───────────────────────────────────────────────────────────────────
+
+.card-type {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: var(--accent, rgba(255, 255, 255, 0.4));
+  margin: 0 0 0.9rem;
+}
+
+.card-name {
+  font-size: 3rem;
+  font-weight: 700;
+  margin: 0 0 1.5rem;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+// ─── Body ─────────────────────────────────────────────────────────────────────
+
+.card-body {
+  // Firefox
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+
+  // WebKit
+  &::-webkit-scrollbar { width: 3px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 99px;
+    &:hover { background: rgba(255, 255, 255, 0.28); }
+  }
+}
+
+.card-description {
+  font-size: 0.875rem;
+  line-height: 1.8;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0;
+}
+
+.card-divider {
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  margin: 1.5rem 0;
+}
+
+// ─── Stats grid ───────────────────────────────────────────────────────────────
+
+.card-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.75rem 2rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stat {
+  &.stat-full { grid-column: 1 / -1; }
+
+  dt {
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: rgba(255, 255, 255, 0.28);
+    margin: 0 0 0.4rem;
+  }
+
+  dd {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.88);
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+}
+
+// ─── Navigation ───────────────────────────────────────────────────────────────
+
+.card-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.card-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.35);
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 0.78rem;
+  cursor: pointer;
+  padding: 0;
+  letter-spacing: 0.04em;
+  transition: color 0.2s;
+
+  svg { width: 16px; height: 16px; flex-shrink: 0; }
+  &:hover { color: rgba(255, 255, 255, 0.85); }
+  &--next { margin-left: auto; }
+}
+
+// ─── Mobile portrait ──────────────────────────────────────────────────────────
+
+@media (max-width: 768px) and (orientation: portrait) {
+  :host {
+    top: auto;
+    bottom: 2vh;
+    right: 1vh;
+    left: 1vh;
+    width: calc(100% - 2vh);
+    height: 50%;
+    align-items: flex-end;
+  }
+
+  .card-content {
+    height: 100%;
+    padding: 0;
+    margin: 0;
+    border-radius: 20px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    animation: cardSlideInMobile 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  @keyframes cardSlideInMobile {
+    from { opacity: 0; transform: translateY(28px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .card-header {
+    flex-shrink: 0;
+    padding: 1.25rem 1.5rem 0.75rem;
+  }
+
+  .card-name {
+    font-size: 2rem;
+    margin-bottom: 0;
+  }
+
+  .card-type { font-size: 0.62rem; }
+
+  .card-body {
+    flex: 1 1 0;
+    overflow-y: auto;
+    padding: 0 1.5rem;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .card-description {
+    font-size: 0.78rem;
+    line-height: 1.55;
+  }
+
+  .card-stats {
+    gap: 1rem 1.25rem;
+    margin-top: 0.75rem;
+  }
+
+  .stat dt { font-size: 0.58rem; }
+  .stat dd { font-size: 0.88rem; }
+
+  .card-nav {
+    flex-shrink: 0;
+    margin-top: 0;
+    padding: 0.75rem 1.5rem 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+  }
+}
+
+// ─── Mobile landscape ─────────────────────────────────────────────────────────
+
+@media (max-width: 900px) and (orientation: landscape) {
+  :host {
+    width: 45%;
+  }
+
+  .card-content {
+    padding: 1.5rem 1.75rem;
+    margin: 1rem;
+  }
+
+  .card-name { font-size: 2rem; }
+
+  .card-description {
+    font-size: 0.78rem;
+    -webkit-line-clamp: 3;
+  }
+}

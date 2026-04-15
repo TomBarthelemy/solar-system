@@ -2,6 +2,7 @@ import { AfterViewInit, Component, ElementRef, OnInit, ViewChild } from "@angula
 
 import * as THREE from "three";
 import { PlaneteProps } from "../planete-props.model";
+import { PLANET_ORDER, PLANET_SCENE_CONFIGS } from './planet-scene-config';
 import { gsap } from 'gsap';
 
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
@@ -136,7 +137,7 @@ export class SolarSystemComponent implements OnInit, AfterViewInit {
   private planetDragVelX = 0;   // inertia velocity X
   planetDragUsed = false;       // hides the hint after first use
 
-  readonly planetOrder = ['SUN', 'MERCURE', 'VENUS', 'EARTH', 'MARS', 'JUPITER', 'SATURN', 'URANUS', 'NEPTUNE'];
+  readonly planetOrder: string[] = [...PLANET_ORDER];
 
   get selectedPlanetIndex(): number {
     if (!this.selectedPlanet) return -1;
@@ -150,107 +151,7 @@ export class SolarSystemComponent implements OnInit, AfterViewInit {
     this.focusPlanet(this.planetOrder[next], direction);
   }
 
-  readonly planetData: Record<string, {
-    displayName: string;
-    type: string;
-    description: string;
-    diameter: string;
-    distanceFromSun: string;
-    moons: number | string;
-    orbitalPeriod: string;
-    temperature: string;
-  }> = {
-    'SUN': {
-      displayName: 'Soleil',
-      type: 'Étoile - naine jaune G2V',
-      description: 'Notre étoile, au cœur du système solaire. Elle représente 99,8 % de la masse totale du système et son énergie est produite par fusion nucléaire.',
-      diameter: '1 392 700 km',
-      distanceFromSun: '-',
-      moons: '-',
-      orbitalPeriod: '-',
-      temperature: '5 500°C (surface) · ~15 M°C (cœur)',
-    },
-    'MERCURE': {
-      displayName: 'Mercure',
-      type: 'Planète tellurique',
-      description: 'La plus petite planète du système solaire et la plus proche du Soleil. Sans atmosphère significative, ses températures varient drastiquement.',
-      diameter: '4 879 km',
-      distanceFromSun: '57,9 millions km',
-      moons: 0,
-      orbitalPeriod: '88 jours',
-      temperature: '-180°C à +430°C',
-    },
-    'VENUS': {
-      displayName: 'Vénus',
-      type: 'Planète tellurique',
-      description: 'La planète la plus chaude du système solaire, enveloppée d\'une épaisse atmosphère de CO₂ créant un effet de serre extrême.',
-      diameter: '12 104 km',
-      distanceFromSun: '108,2 millions km',
-      moons: 0,
-      orbitalPeriod: '225 jours',
-      temperature: '+465°C (moyenne)',
-    },
-    'EARTH': {
-      displayName: 'Terre',
-      type: 'Planète tellurique',
-      description: 'Notre maison. La seule planète connue à abriter la vie, avec de l\'eau liquide en surface et une atmosphère riche en azote et oxygène.',
-      diameter: '12 742 km',
-      distanceFromSun: '149,6 millions km',
-      moons: 1,
-      orbitalPeriod: '365,25 jours',
-      temperature: '-88°C à +58°C',
-    },
-    'MARS': {
-      displayName: 'Mars',
-      type: 'Planète tellurique',
-      description: 'La planète rouge. Elle abrite Olympus Mons, le plus grand volcan du système solaire, et Valles Marineris, le plus vaste canyon.',
-      diameter: '6 779 km',
-      distanceFromSun: '227,9 millions km',
-      moons: 2,
-      orbitalPeriod: '687 jours',
-      temperature: '-143°C à +35°C',
-    },
-    'JUPITER': {
-      displayName: 'Jupiter',
-      type: 'Géante gazeuse',
-      description: 'La plus grande planète du système solaire. Sa Grande Tache Rouge est une tempête anticyclonique active depuis plus de 350 ans.',
-      diameter: '139 820 km',
-      distanceFromSun: '778,5 millions km',
-      moons: 95,
-      orbitalPeriod: '11,9 ans',
-      temperature: '-110°C (nuages)',
-    },
-    'SATURN': {
-      displayName: 'Saturne',
-      type: 'Géante gazeuse',
-      description: 'Célèbre pour ses spectaculaires anneaux composés de glace et de roches. La moins dense de toutes les planètes - plus légère que l\'eau.',
-      diameter: '116 460 km',
-      distanceFromSun: '1 432 millions km',
-      moons: 146,
-      orbitalPeriod: '29,5 ans',
-      temperature: '-140°C (nuages)',
-    },
-    'URANUS': {
-      displayName: 'Uranus',
-      type: 'Géante de glace',
-      description: 'Son axe de rotation est incliné à 98°, la faisant orbiter pratiquement "couchée sur le côté". Sa couleur cyan vient du méthane atmosphérique.',
-      diameter: '50 724 km',
-      distanceFromSun: '2 867 millions km',
-      moons: 27,
-      orbitalPeriod: '84 ans',
-      temperature: '-224°C (nuages)',
-    },
-    'NEPTUNE': {
-      displayName: 'Neptune',
-      type: 'Géante de glace',
-      description: 'La planète la plus éloignée du Soleil. Ses vents sont les plus violents du système solaire, atteignant +2 000 km/h.',
-      diameter: '49 244 km',
-      distanceFromSun: '4 495 millions km',
-      moons: 16,
-      orbitalPeriod: '165 ans',
-      temperature: '-218°C (nuages)',
-    },
-  };
+  // planetData lives in PlanetCardComponent — see planet-display-data.ts
 
   get selectedPlanetColor(): string {
     if (!this.selectedPlanet) return 'rgba(255,255,255,0.3)';
@@ -653,109 +554,36 @@ export class SolarSystemComponent implements OnInit, AfterViewInit {
   }
 
   createPlanetesProps(): void {
-    // ------------ SUN ------------
-    const SUN = {
-      scale: 20,
-      positionX: -30,
-      roughness: 1,
-      map: this.sunTexture,
-      normalTexture: this.sunNormalTexture,
-      glowColor: "#ffff00",
+    // Resolve individual texture fields to a lookup map (textures still loaded as class fields)
+    const colorMap: Record<string, THREE.Texture> = {
+      SUN: this.sunTexture, MERCURE: this.mercureTexture, VENUS: this.venusTexture,
+      EARTH: this.earthTexture, MARS: this.marsTexture, JUPITER: this.jupiterTexture,
+      SATURN: this.saturnTexture, URANUS: this.uranusTexture, NEPTUNE: this.neptuneTexture,
+    };
+    const normalMap: Record<string, THREE.Texture> = {
+      SUN: this.sunNormalTexture, MERCURE: this.normalTexture, VENUS: this.normalTexture,
+      EARTH: this.normalTexture, MARS: this.normalTexture, JUPITER: this.jupiterNormalTexture,
+      SATURN: this.normalTexture, URANUS: this.uranusNormalTexture, NEPTUNE: this.neptuneNormalTexture,
     };
 
-    // ------------ MERCURE ------------
-    const MERCURE = {
-      scale: 0.9,
-      positionX: -5,
-      roughness: 0.4,
-      map: this.mercureTexture,
-      normalTexture: this.normalTexture,
-      glowColor: "#ae9a76",
-    };
-
-    // ------------ VENUS ------------
-    const VENUS = {
-      scale: 1.4,
-      positionX: -1,
-      roughness: 0.6,
-      map: this.venusTexture,
-      normalTexture: this.normalTexture,
-      glowColor: "#dcb67c",
-    };
-
-    // ------------ EARTH ------------
-    const EARTH = {
-      scale: 1.5,
-      positionX: 4,
-      roughness: 0.6,
-      map: this.earthTexture,
-      normalTexture: this.normalTexture,
-      glowColor: "#5e6daa",
-    };
-
-    // ------------ MARS ------------
-    const MARS = {
-      scale: 0.8,
-      positionX: 8,
-      roughness: 0.7,
-      map: this.marsTexture,
-      normalTexture: this.normalTexture,
-      glowColor: "#e3683e",
-    };
-    // ------------ JUPITER ------------
-    const JUPITER = {
-      scale: 3.0,
-      positionX: 14,
-      roughness: 0.8,
-      map: this.jupiterTexture,
-      normalTexture: this.jupiterNormalTexture,
-      glowColor: "#eecbaa",
-    };
-
-    // ------------ SATURN ------------
-    const SATURN = {
-      scale: 1.8,
-      positionX: 23,
-      roughness: 0.85,
-      map: this.saturnTexture,
-      normalTexture: this.normalTexture,
-      ringScale: 0.45,
-      ringMap: this.saturnRingTexture,
-      ringRoughness: 0.4,
-      ringMetalness: 0.5,
-      glowColor: "#ffe786",
-    };
-    // ------------ URANUS ------------
-    const URANUS = {
-      scale: 2.0,
-      positionX: 32,
-      roughness: 0.9,
-      map: this.uranusTexture,
-      normalTexture: this.uranusNormalTexture,
-      glowColor: "#3feee8",
-    };
-    // ------------ NEPTUNE ------------
-    const NEPTUNE = {
-      scale: 1.8,
-      positionX: 38,
-      roughness: 0.9,
-      map: this.neptuneTexture,
-      normalTexture: this.neptuneNormalTexture,
-      glowColor: "#5b9dfb",
-    };
-
-    this.solarSystemProps.set("SUN", SUN);
-    this.solarSystemProps.set("MERCURE", MERCURE);
-    this.solarSystemProps.set("VENUS", VENUS);
-    this.solarSystemProps.set("EARTH", EARTH);
-    this.solarSystemProps.set("MARS", MARS);
-    this.solarSystemProps.set("JUPITER", JUPITER);
-    this.solarSystemProps.set("SATURN", SATURN);
-    this.solarSystemProps.set("URANUS", URANUS);
-    this.solarSystemProps.set("NEPTUNE", NEPTUNE);
-
-
-
+    for (const key of PLANET_ORDER) {
+      const cfg = PLANET_SCENE_CONFIGS[key];
+      const props: any = {
+        scale: cfg.scale,
+        positionX: cfg.positionX,
+        roughness: cfg.roughness,
+        glowColor: cfg.glowColor,
+        map: colorMap[key],
+        normalTexture: normalMap[key],
+      };
+      if (cfg.ring) {
+        props.ringScale = cfg.ring.scale;
+        props.ringMap = this.saturnRingTexture;
+        props.ringRoughness = cfg.ring.roughness;
+        props.ringMetalness = cfg.ring.metalness;
+      }
+      this.solarSystemProps.set(key, props);
+    }
   }
 
   setUpEventsListener(): void {

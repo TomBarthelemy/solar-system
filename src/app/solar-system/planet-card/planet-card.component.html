@@ -1,0 +1,58 @@
+<div class="card-content" [style.--accent]="accentColor">
+
+  <button class="card-close" (click)="closed.emit()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M18 6L6 18M6 6l12 12"/>
+    </svg>
+  </button>
+
+  <div class="card-header">
+    <p class="card-type">{{ data.type }}</p>
+    <h2 class="card-name">{{ data.displayName }}</h2>
+  </div>
+
+  <div class="card-body">
+    <p class="card-description">{{ data.description }}</p>
+
+    <hr class="card-divider">
+
+    <dl class="card-stats">
+      <div class="stat">
+        <dt>Diamètre</dt>
+        <dd>{{ data.diameter }}</dd>
+      </div>
+      <div class="stat">
+        <dt>Distance du Soleil</dt>
+        <dd>{{ data.distanceFromSun }}</dd>
+      </div>
+      <div class="stat">
+        <dt>Lunes</dt>
+        <dd>{{ data.moons }}</dd>
+      </div>
+      <div class="stat">
+        <dt>Période orbitale</dt>
+        <dd>{{ data.orbitalPeriod }}</dd>
+      </div>
+      <div class="stat stat-full">
+        <dt>Température</dt>
+        <dd>{{ data.temperature }}</dd>
+      </div>
+    </dl>
+  </div>
+
+  <div class="card-nav">
+    <button class="card-nav-btn" (click)="navigated.emit(-1)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M15 18l-6-6 6-6"/>
+      </svg>
+      <span>{{ prevPlanetName }}</span>
+    </button>
+    <button class="card-nav-btn card-nav-btn--next" (click)="navigated.emit(1)">
+      <span>{{ nextPlanetName }}</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M9 18l6-6-6-6"/>
+      </svg>
+    </button>
+  </div>
+
+</div>
