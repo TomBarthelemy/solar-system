@@ -2,14 +2,16 @@
 
 <div class="loading-bar"></div>
 
-<div class="drag-hint" [class.hidden]="!!selectedPlanet">
+<div class="drag-hint" [class.hidden]="!!selectedPlanet" [class.vertical]="isMobileLayout">
   <div class="drag-hint-inner">
     <svg class="drag-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-      <path d="M19 12H5M5 12l7-7M5 12l7 7"/>
+      <path *ngIf="!isMobileLayout" d="M19 12H5M5 12l7-7M5 12l7 7"/>
+      <path *ngIf="isMobileLayout"  d="M12 19V5M5 12l7-7 7 7"/>
     </svg>
-    <span>Glisser pour explorer</span>
+    <span>{{ isMobileLayout ? 'Faire défiler' : 'Glisser pour explorer' }}</span>
     <svg class="drag-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-      <path d="M5 12h14M14 5l7 7-7 7"/>
+      <path *ngIf="!isMobileLayout" d="M5 12h14M14 5l7 7-7 7"/>
+      <path *ngIf="isMobileLayout"  d="M12 5v14M19 12l-7 7-7-7"/>
     </svg>
   </div>
 </div>
@@ -32,34 +34,39 @@
       </svg>
     </button>
 
-    <p class="card-type">{{ planetData[selectedPlanet].type }}</p>
-    <h2 class="card-name">{{ planetData[selectedPlanet].displayName }}</h2>
-    <p class="card-description">{{ planetData[selectedPlanet].description }}</p>
+    <div class="card-header">
+      <p class="card-type">{{ planetData[selectedPlanet].type }}</p>
+      <h2 class="card-name">{{ planetData[selectedPlanet].displayName }}</h2>
+    </div>
 
-    <hr class="card-divider">
+    <div class="card-body">
+      <p class="card-description">{{ planetData[selectedPlanet].description }}</p>
 
-    <dl class="card-stats">
-      <div class="stat">
-        <dt>Diamètre</dt>
-        <dd>{{ planetData[selectedPlanet].diameter }}</dd>
-      </div>
-      <div class="stat">
-        <dt>Distance du Soleil</dt>
-        <dd>{{ planetData[selectedPlanet].distanceFromSun }}</dd>
-      </div>
-      <div class="stat">
-        <dt>Lunes</dt>
-        <dd>{{ planetData[selectedPlanet].moons }}</dd>
-      </div>
-      <div class="stat">
-        <dt>Période orbitale</dt>
-        <dd>{{ planetData[selectedPlanet].orbitalPeriod }}</dd>
-      </div>
-      <div class="stat stat-full">
-        <dt>Température</dt>
-        <dd>{{ planetData[selectedPlanet].temperature }}</dd>
-      </div>
-    </dl>
+      <hr class="card-divider">
+
+      <dl class="card-stats">
+        <div class="stat">
+          <dt>Diamètre</dt>
+          <dd>{{ planetData[selectedPlanet].diameter }}</dd>
+        </div>
+        <div class="stat">
+          <dt>Distance du Soleil</dt>
+          <dd>{{ planetData[selectedPlanet].distanceFromSun }}</dd>
+        </div>
+        <div class="stat">
+          <dt>Lunes</dt>
+          <dd>{{ planetData[selectedPlanet].moons }}</dd>
+        </div>
+        <div class="stat">
+          <dt>Période orbitale</dt>
+          <dd>{{ planetData[selectedPlanet].orbitalPeriod }}</dd>
+        </div>
+        <div class="stat stat-full">
+          <dt>Température</dt>
+          <dd>{{ planetData[selectedPlanet].temperature }}</dd>
+        </div>
+      </dl>
+    </div>
 
     <div class="card-nav">
       <button class="card-nav-btn" (click)="navigatePlanet(-1)">

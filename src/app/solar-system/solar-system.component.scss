@@ -75,6 +75,24 @@
   75%       { transform: translateX(4px); }
 }
 
+@keyframes hintPulseV {
+  0%, 100% { opacity: 0.6; transform: translateY(0); }
+  25%       { transform: translateY(-4px); }
+  75%       { transform: translateY(4px); }
+}
+
+.drag-hint.vertical .drag-hint-inner {
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  animation: hintPulseV 3s ease-in-out infinite;
+}
+
+.drag-hint.vertical .drag-arrow {
+  width: 18px;
+  height: 18px;
+}
+
 // ─── Rotate hint (detail view) ────────────────────────────────────────────────
 
 .rotate-hint {
@@ -163,6 +181,28 @@
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
+}
+
+// ─── Custom scrollbar for card-body ─────────────────────────────────────────
+.card-body {
+  // Firefox
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+
+  // WebKit
+  &::-webkit-scrollbar {
+    width: 3px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 99px;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.28);
+  }
 }
 
 @keyframes cardSlideIn {
@@ -297,5 +337,103 @@
     color: rgba(255, 255, 255, 0.88);
     margin: 0;
     letter-spacing: -0.01em;
+  }
+}
+
+// ── Mobile portrait layout ─────────────────────────────────────────────────
+@media (max-width: 768px) and (orientation: portrait) {
+  .planet-card {
+    top: auto;
+    bottom: 2vh;
+    right: 1vh;
+    left: 1vh;
+    width: calc(100% - 2vh);
+    height: 50%;
+    align-items: flex-end;
+  }
+
+  .card-content {
+    height: 100%;
+    padding: 0;
+    margin: 0;
+    border-radius: 20px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    animation: cardSlideInMobile 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  @keyframes cardSlideInMobile {
+    from { opacity: 0; transform: translateY(28px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  // Fixed header: type + name
+  .card-header {
+    flex-shrink: 0;
+    padding: 1.25rem 1.5rem 0.75rem;
+  }
+
+  .card-name {
+    font-size: 2rem;
+    margin-bottom: 0;
+  }
+
+  .card-type {
+    font-size: 0.62rem;
+  }
+
+  // Scrollable middle: description + stats
+  .card-body {
+    flex: 1 1 0;
+    overflow-y: auto;
+    padding: 0 1.5rem;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .card-description {
+    font-size: 0.78rem;
+    line-height: 1.55;
+  }
+
+  .card-stats {
+    gap: 1rem 1.25rem;
+    margin-top: 0.75rem;
+  }
+
+  .stat dt { font-size: 0.58rem; }
+  .stat dd { font-size: 0.88rem; }
+
+  // Fixed footer: nav buttons
+  .card-nav {
+    flex-shrink: 0;
+    margin-top: 0;
+    padding: 0.75rem 1.5rem 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+  }
+
+  .rotate-hint {
+    bottom: calc(50% + 2vh);
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
+
+// ── Mobile landscape layout ────────────────────────────────────────────────
+@media (max-width: 900px) and (orientation: landscape) {
+  .planet-card {
+    width: 45%;
+  }
+
+  .card-content {
+    padding: 1.5rem 1.75rem;
+    margin: 1rem;
+  }
+
+  .card-name { font-size: 2rem; }
+
+  .card-description {
+    font-size: 0.78rem;
+    -webkit-line-clamp: 3;
   }
 }

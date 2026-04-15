@@ -40,8 +40,83 @@ export class SolarSystemComponent implements OnInit, AfterViewInit {
 
   private mouseDown = false;
   private cursorX = 0;
+  private cursorY = 0;
+  private cameraScrollVelY = 0; // inertia for mobile vertical scroll
 
   private planetSpeedRotation = 0.1;
+  private lookAtY = 0;
+
+  // ── Mobile vertical layout ──────────────────────────────────────
+  isMobileLayout = false;
+  private mobilePlanetY = new Map<string, number>();
+  private cameraMinY = 0;
+  private cameraMaxY = 0;
+  private savedCameraY = 0;
+
+  private isMobilePortraitNow(): boolean {
+    return window.innerWidth < window.innerHeight && window.innerWidth <= 768;
+  }
+
+  // SUN appears 3x smaller in mobile overview (scale applied to group)
+  private readonly MOBILE_SUN_SCALE = 1 / 3;
+
+  private buildMobilePositions(): void {
+    // effectiveR = visual radius of the planet (including glow/ring)
+    const effectiveR = (name: string): number => {
+      const p = this.solarSystemProps.get(name)!;
+      if (name === 'SUN') return p.scale * this.MOBILE_SUN_SCALE * 1.30;    // scaled corona
+      if (name === 'SATURN') return p.scale * 1.1 * 1.4;  // ring outer edge
+      return p.scale * 1.1;                          // glow ring
+    };
+    // Uniform gap (world units) between the visual edges of adjacent planets
+    const gap = 5;
+    let y = 0;
+    for (let i = 0; i < this.planetOrder.length; i++) {
+      const name = this.planetOrder[i];
+      this.mobilePlanetY.set(name, y);
+      if (i < this.planetOrder.length - 1) {
+        // spacing = both planets' radii + constant gap → edges always gap apart
+        y -= effectiveR(name) + effectiveR(this.planetOrder[i + 1]) + gap;
+      }
+    }
+    this.cameraMaxY = -17;   // SUN center at screen top → bottom half of SUN visible
+    // a bit below the last planet's bottom edge
+    this.cameraMinY = y - effectiveR(this.planetOrder[this.planetOrder.length - 1]) - 3;
+  }
+
+  private applyMobileLayout(): void {
+    this.isMobileLayout = true;
+    for (const [name, group] of this.solarSystemMesh.entries()) {
+      const props = this.solarSystemProps.get(name)!;
+      const mobileY = this.mobilePlanetY.get(name)!;
+      if (name === 'SUN') {
+        // Scale SUN down and compensate group X so child meshes stay world-centered.
+        // World x = group.pos.x + child.local.x * scale → set group.pos.x = -positionX * scale
+        group.scale.setScalar(this.MOBILE_SUN_SCALE);
+        group.position.set(-props.positionX * this.MOBILE_SUN_SCALE, mobileY, 0);
+      } else {
+        group.position.set(-props.positionX, mobileY, 0);
+      }
+    }
+    // z=40 keeps planets larger on screen; start at y=-42 so SUN is off-screen
+    // and Mercury/Venus/Earth are all visible
+    this.camera.position.set(0, -17, 40);
+    // Rotate background 90° so the portrait-format space image fills the screen naturally
+    this.spaceTexture.center.set(0.5, 0.5);
+    this.spaceTexture.rotation = Math.PI / 2;
+  }
+
+  private applyDesktopLayout(): void {
+    this.isMobileLayout = false;
+    for (const [, group] of this.solarSystemMesh.entries()) {
+      group.position.set(0, 0, 0);
+      group.scale.setScalar(1); // reset any mobile scale
+    }
+    this.camera.position.set(12, 2, 30);
+    this.lookAtY = 0;
+    // Reset background texture rotation for landscape
+    this.spaceTexture.rotation = 0;
+  }
 
   private defaultGlow = 0.6;
   private hoverGlow = 0.8;
@@ -320,6 +395,10 @@ export class SolarSystemComponent implements OnInit, AfterViewInit {
     this.setUpSceneCameraAndLight();
     this.setUpEventsListener();
     this.createMeshs();
+    this.buildMobilePositions();
+    if (this.isMobilePortraitNow()) {
+      this.applyMobileLayout();
+    }
   }
   setUpLoading() {
     const overlay = new THREE.Mesh(this.overlayGeometry, this.overlayMaterial)
@@ -353,6 +432,12 @@ export class SolarSystemComponent implements OnInit, AfterViewInit {
   tick() {
     const elapsedTime = this.clock.getElapsedTime();
 
+    // ─ Mobile scroll inertia ───────────────────────────────────────────────
+    if (this.isMobileLayout && !this.selectedPlanet && Math.abs(this.cameraScrollVelY) > 0.00005) {
+      this.dragActionY(this.cameraScrollVelY);
+      this.cameraScrollVelY *= 0.88; // friction
+    }
+
     // ─ Planet drag-rotation inertia & auto-spin (detail view) ──────────
     if (this.selectedPlanet && !this.planetDragActive) {
       this.planetDragVelY *= 0.90;
@@ -363,11 +448,17 @@ export class SolarSystemComponent implements OnInit, AfterViewInit {
       this.planetDragRotX = Math.max(-Math.PI * 0.45, Math.min(Math.PI * 0.45, this.planetDragRotX));
       // Resume gentle auto-spin once inertia dies out
       if (Math.abs(this.planetDragVelY) < 0.0005) {
-        this.planetDragRotY += 0.0003;
+        this.planetDragRotY += 0.003;
       }
     }
 
-    this.camera.lookAt(new THREE.Vector3(this.camera.position.x, 0, 0));
+    if (this.isMobileLayout && !this.selectedPlanet) {
+      this.camera.lookAt(new THREE.Vector3(0, this.camera.position.y, 0));
+    } else if (this.isMobileLayout && this.selectedPlanet) {
+      this.camera.lookAt(new THREE.Vector3(0, this.lookAtY, 0));
+    } else {
+      this.camera.lookAt(new THREE.Vector3(this.camera.position.x, this.lookAtY, 0));
+    }
 
     // Background planets rotate slowly in detail view (×0.08)
     const bgSpeed = this.selectedPlanet ? this.planetSpeedRotation * 0.08 : this.planetSpeedRotation;
@@ -382,7 +473,7 @@ export class SolarSystemComponent implements OnInit, AfterViewInit {
           planetMesh.rotation.y = this.planetDragRotY;
           planetMesh.rotation.x = this.planetDragRotX;
         } else {
-          const sunSpeed = this.selectedPlanet ? 0.001 : 0.01;
+          const sunSpeed = this.selectedPlanet ? 0.004 : 0.01;
           planetMesh.rotation.y = elapsedTime * sunSpeed;
         }
         // Update inner flame corona viewVector (world position, because group.position.y animates)
@@ -418,7 +509,8 @@ export class SolarSystemComponent implements OnInit, AfterViewInit {
       }
 
       if (planetName !== "SUN") {
-        planetGlowMesh.material.uniforms.viewVector.value = new THREE.Vector3().subVectors(this.camera.position, planetGlowMesh.position);
+        const wp = planetGlowMesh.getWorldPosition(new THREE.Vector3());
+        planetGlowMesh.material.uniforms.viewVector.value = new THREE.Vector3().subVectors(this.camera.position, wp);
       }
     }
 
@@ -737,10 +829,8 @@ export class SolarSystemComponent implements OnInit, AfterViewInit {
     });
 
     // EVENT : controle du 'zoom' avec la roulette ou le double-tap sur smartphone
-    window.addEventListener("wheel", (event) => {
-      if (this.selectedPlanet) return;
-      const delta = Math.sign(event.deltaY);
-      this.zoomAction(delta);
+    window.addEventListener("wheel", (_event) => {
+      // Zoom disabled — use the per-planet detail view instead
     });
 
     window.addEventListener("keydown", (event) => {
@@ -752,6 +842,73 @@ export class SolarSystemComponent implements OnInit, AfterViewInit {
         if (this.selectedPlanet) this.unfocusPlanet();
       }
     });
+
+    // ── Touch events (mobile) ─────────────────────────────────────
+    window.addEventListener("touchstart", (event) => {
+      const touch = event.touches[0];
+      this.cursorX = touch.clientX / this.sizes.width;
+      this.cursorY = touch.clientY / this.sizes.height;
+      this.mouseDown = true;
+      this.clickStartX = touch.clientX;
+      this.clickStartY = touch.clientY;
+      this.hasDragged = false;
+      this.cameraScrollVelY = 0; // stop inertia when finger touches
+      if (this.selectedPlanet && event.target instanceof HTMLCanvasElement) {
+        this.planetDragActive = true;
+        this.planetDragLastX = touch.clientX;
+        this.planetDragLastY = touch.clientY;
+        this.planetDragVelY = 0;
+        this.planetDragVelX = 0;
+      }
+    }, { passive: true });
+
+    window.addEventListener("touchmove", (event) => {
+      const touch = event.touches[0];
+
+      this.mouse.x = (touch.clientX / this.sizes.width) * 2 - 1;
+      this.mouse.y = -(touch.clientY / this.sizes.height) * 2 + 1;
+
+      const dx = Math.abs(touch.clientX - this.clickStartX);
+      const dy = Math.abs(touch.clientY - this.clickStartY);
+      if (dx > 4 || dy > 4) this.hasDragged = true;
+
+      // Planet drag in detail view
+      if (this.selectedPlanet && this.planetDragActive) {
+        const ddx = touch.clientX - this.planetDragLastX;
+        const ddy = touch.clientY - this.planetDragLastY;
+        this.planetDragLastX = touch.clientX;
+        this.planetDragLastY = touch.clientY;
+        const sens = 0.006;
+        this.planetDragRotY += ddx * sens;
+        this.planetDragRotX += ddy * sens;
+        this.planetDragVelY = ddx * sens;
+        this.planetDragVelX = ddy * sens;
+        this.planetDragUsed = true;
+        return;
+      }
+
+      if (this.selectedPlanet) return;
+
+      // Camera pan: vertical on mobile layout, horizontal on desktop
+      if (this.isMobileLayout) {
+        const deltaY = touch.clientY / this.sizes.height - this.cursorY;
+        this.cursorY = touch.clientY / this.sizes.height;
+        this.cameraScrollVelY = deltaY; // track for inertia
+        this.dragActionY(deltaY);
+      } else {
+        const deltaX = touch.clientX / this.sizes.width - this.cursorX;
+        this.cursorX = touch.clientX / this.sizes.width;
+        this.dragAction(-deltaX);
+      }
+    }, { passive: true });
+
+    window.addEventListener("touchend", (event) => {
+      this.mouseDown = false;
+      this.planetDragActive = false;
+      if (!this.hasDragged && event.target instanceof HTMLCanvasElement) {
+        this.handleClick();
+      }
+    }, { passive: true });
 
     // EVENT : pour gerer le resize auto de la scene (askip)
     window.addEventListener("resize", () => {
@@ -766,6 +923,13 @@ export class SolarSystemComponent implements OnInit, AfterViewInit {
       // Update renderer
       this.renderer.setSize(this.sizes.width, this.sizes.height);
       this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+      // Toggle vertical/horizontal layout on orientation change
+      if (this.isMobilePortraitNow() && !this.isMobileLayout) {
+        if (!this.selectedPlanet) this.applyMobileLayout();
+      } else if (!this.isMobilePortraitNow() && this.isMobileLayout) {
+        if (!this.selectedPlanet) this.applyDesktopLayout();
+      }
     });
   }
 
@@ -777,6 +941,11 @@ export class SolarSystemComponent implements OnInit, AfterViewInit {
     } else {
       this.camera.position.x += deltaX * 15;
     }
+  }
+
+  dragActionY(deltaY: number): void {
+    const next = this.camera.position.y + deltaY * 45;
+    this.camera.position.y = Math.max(this.cameraMinY, Math.min(this.cameraMaxY, next));
   }
 
   zoomAction(delta): void {
@@ -828,7 +997,13 @@ export class SolarSystemComponent implements OnInit, AfterViewInit {
       const prevGroup = this.solarSystemMesh.get(this.selectedPlanet);
       if (prevGroup) {
         gsap.killTweensOf(prevGroup.position);
-        prevGroup.position.y = 0;
+        // In mobile layout, group.position.y is the planet's Y in the list — reset the
+        // animation offset (the child mesh position) not the group origin.
+        if (this.isMobileLayout) {
+          prevGroup.position.y = this.mobilePlanetY.get(this.selectedPlanet)!;
+        } else {
+          prevGroup.position.y = 0;
+        }
       }
     }
 
@@ -847,6 +1022,7 @@ export class SolarSystemComponent implements OnInit, AfterViewInit {
       group.visible = false;
     }
 
+    const isMobilePortrait = this.isMobileLayout;
     let effectiveRadius: number;
     if (planetName === 'SUN') {
       effectiveRadius = props.scale * 1.25;
@@ -858,11 +1034,22 @@ export class SolarSystemComponent implements OnInit, AfterViewInit {
       effectiveRadius = props.scale * 1.1;
     }
     const targetZ = Math.max(3, effectiveRadius * 4);
-    const targetX = props.positionX + targetZ * 0.3;
+    const mobileZ   = isMobilePortrait ? targetZ * 1.5 : targetZ;
 
-    // Teleport camera to its final position instantly - no camera animation
-    gsap.killTweensOf(this.camera.position);
-    this.camera.position.set(targetX, 1, targetZ);
+    if (isMobilePortrait) {
+      // Save camera Y for restore on unfocus
+      this.savedCameraY = this.camera.position.y;
+      const mobileY = this.mobilePlanetY.get(planetName)!;
+      this.lookAtY = mobileY - effectiveRadius * 1.3;
+      gsap.killTweensOf(this.camera.position);
+      this.camera.position.set(0, mobileY, mobileZ);
+    } else {
+      const lateralOffset = targetZ * 0.3;
+      const targetX = props.positionX + lateralOffset;
+      this.lookAtY = 0;
+      gsap.killTweensOf(this.camera.position);
+      this.camera.position.set(targetX, 1, targetZ);
+    }
 
     // direction=1 (right/first): planet rises from below
     // direction=-1 (left): planet falls from above
@@ -871,42 +1058,72 @@ export class SolarSystemComponent implements OnInit, AfterViewInit {
     const targetGroup = this.solarSystemMesh.get(planetName);
     if (!targetGroup) return;
 
-    gsap.killTweensOf(targetGroup.position);
-    targetGroup.position.y = startY;
-    targetGroup.visible = true;
+    // In mobile layout the SUN is scaled down for the overview; restore full size for detail
+    if (this.isMobileLayout && planetName === 'SUN') {
+      targetGroup.scale.setScalar(1);
+      targetGroup.position.x = -this.solarSystemProps.get('SUN')!.positionX;
+    }
 
-    gsap.to(targetGroup.position, {
-      y: 0,
-      duration: 0.9,
-      ease: 'power3.out',
-    });
+    gsap.killTweensOf(targetGroup.position);
+    if (this.isMobileLayout) {
+      // In mobile layout group.position.y IS the planet's Y slot — animate a Y child offset
+      // by temporarily moving the group away then back
+      const baseY = this.mobilePlanetY.get(planetName)!;
+      targetGroup.position.y = baseY + startY;
+      targetGroup.visible = true;
+      gsap.to(targetGroup.position, { y: baseY, duration: 0.55, ease: 'expo.out' });;
+    } else {
+      targetGroup.position.y = startY;
+      targetGroup.visible = true;
+      gsap.to(targetGroup.position, { y: 0, duration: 0.55, ease: 'expo.out' });;
+    }
   }
 
   unfocusPlanet(): void {
-    // Reset the focused planet's Y so it's correct when returning to overview
     if (this.selectedPlanet) {
       const prevGroup = this.solarSystemMesh.get(this.selectedPlanet);
       if (prevGroup) {
         gsap.killTweensOf(prevGroup.position);
-        prevGroup.position.y = 0;
+        if (this.isMobileLayout) {
+          prevGroup.position.y = this.mobilePlanetY.get(this.selectedPlanet)!;
+        } else {
+          prevGroup.position.y = 0;
+        }
       }
     }
 
     this.selectedPlanet = null;
+    this.lookAtY = 0;
 
     // Restore all planet groups
-    for (const [, group] of this.solarSystemMesh.entries()) {
+    for (const [name, group] of this.solarSystemMesh.entries()) {
       group.visible = true;
+      // Restore SUN to its smaller mobile-overview scale
+      if (this.isMobileLayout && name === 'SUN') {
+        const sunProps = this.solarSystemProps.get('SUN')!;
+        group.scale.setScalar(this.MOBILE_SUN_SCALE);
+        group.position.x = -sunProps.positionX * this.MOBILE_SUN_SCALE;
+      }
     }
 
     gsap.killTweensOf(this.camera.position);
-    gsap.to(this.camera.position, {
-      x: 12,
-      y: 2,
-      z: 30,
-      duration: 1.5,
-      ease: 'power2.inOut',
-    });
+    if (this.isMobileLayout) {
+      gsap.to(this.camera.position, {
+        x: 0,
+        y: this.savedCameraY,
+        z: 40,
+        duration: 1.2,
+        ease: 'power2.inOut',
+      });
+    } else {
+      gsap.to(this.camera.position, {
+        x: 12,
+        y: 2,
+        z: 30,
+        duration: 1.5,
+        ease: 'power2.inOut',
+      });
+    }
   }
 
 
