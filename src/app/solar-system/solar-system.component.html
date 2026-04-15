@@ -2,30 +2,78 @@
 
 <div class="loading-bar"></div>
 
-<div class="point SUN">
-    <div class="label">Soleil</div>
+<div class="drag-hint" [class.hidden]="!!selectedPlanet">
+  <div class="drag-hint-inner">
+    <svg class="drag-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <path d="M19 12H5M5 12l7-7M5 12l7 7"/>
+    </svg>
+    <span>Glisser pour explorer</span>
+    <svg class="drag-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <path d="M5 12h14M14 5l7 7-7 7"/>
+    </svg>
+  </div>
 </div>
-<div class="point MERCURE">
-    <div class="label">Mercure</div>
+
+<div class="rotate-hint" [class.hidden]="!selectedPlanet || planetDragUsed">
+  <div class="rotate-hint-inner">
+    <svg class="rotate-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+      <polyline points="3 3 3 8 8 8"/>
+    </svg>
+    <span>Faire pivoter</span>
+  </div>
 </div>
-<div class="point VENUS">
-    <div class="label">Venus</div>
-</div>
-<div class="point EARTH">
-    <div class="label">Terre</div>
-</div>
-<div class="point MARS">
-    <div class="label">Mars</div>
-</div>
-<div class="point JUPITER">
-    <div class="label">Jupiter</div>
-</div>
-<div class="point SATURN">
-    <div class="label">Saturn</div>
-</div>
-<div class="point URANUS">
-    <div class="label">Uranus</div>
-</div>
-<div class="point NEPTUNE">
-    <div class="label">Neptune</div>
+
+<div class="planet-card" *ngIf="selectedPlanet && planetData[selectedPlanet]" [style.--accent]="selectedPlanetColor">
+  <div class="card-content">
+    <button class="card-close" (click)="unfocusPlanet()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M18 6L6 18M6 6l12 12"/>
+      </svg>
+    </button>
+
+    <p class="card-type">{{ planetData[selectedPlanet].type }}</p>
+    <h2 class="card-name">{{ planetData[selectedPlanet].displayName }}</h2>
+    <p class="card-description">{{ planetData[selectedPlanet].description }}</p>
+
+    <hr class="card-divider">
+
+    <dl class="card-stats">
+      <div class="stat">
+        <dt>Diamètre</dt>
+        <dd>{{ planetData[selectedPlanet].diameter }}</dd>
+      </div>
+      <div class="stat">
+        <dt>Distance du Soleil</dt>
+        <dd>{{ planetData[selectedPlanet].distanceFromSun }}</dd>
+      </div>
+      <div class="stat">
+        <dt>Lunes</dt>
+        <dd>{{ planetData[selectedPlanet].moons }}</dd>
+      </div>
+      <div class="stat">
+        <dt>Période orbitale</dt>
+        <dd>{{ planetData[selectedPlanet].orbitalPeriod }}</dd>
+      </div>
+      <div class="stat stat-full">
+        <dt>Température</dt>
+        <dd>{{ planetData[selectedPlanet].temperature }}</dd>
+      </div>
+    </dl>
+
+    <div class="card-nav">
+      <button class="card-nav-btn" (click)="navigatePlanet(-1)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M15 18l-6-6 6-6"/>
+        </svg>
+        <span>{{ planetData[planetOrder[(selectedPlanetIndex - 1 + planetOrder.length) % planetOrder.length]].displayName }}</span>
+      </button>
+      <button class="card-nav-btn card-nav-btn--next" (click)="navigatePlanet(1)">
+        <span>{{ planetData[planetOrder[(selectedPlanetIndex + 1) % planetOrder.length]].displayName }}</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M9 18l6-6-6-6"/>
+        </svg>
+      </button>
+    </div>
+  </div>
 </div>
