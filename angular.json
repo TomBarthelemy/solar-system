@@ -28,10 +28,13 @@
             "inlineStyleLanguage": "scss",
             "assets": [
               "src/favicon.ico",
+              "src/favicon.svg",
+              "src/favicon-32x32.png",
               "src/assets",
               "src/assets/shaders",
               "src/assets/textures/color",
-              "src/assets/textures/normal"
+              "src/assets/textures/normal",
+              "src/manifest.webmanifest"
             ],
             "styles": [
               "src/styles.scss"
@@ -39,7 +42,9 @@
             "scripts": [],
             "customWebpackConfig": {
               "path": "./custom-webpack.config.js"
-            }
+            },
+            "serviceWorker": true,
+            "ngswConfigPath": "ngsw-config.json"
           },
           "configurations": {
             "production": {
@@ -102,7 +107,8 @@
             "inlineStyleLanguage": "scss",
             "assets": [
               "src/favicon.ico",
-              "src/assets"
+              "src/assets",
+              "src/manifest.webmanifest"
             ],
             "styles": [
               "src/styles.scss"
